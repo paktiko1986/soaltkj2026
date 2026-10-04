@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuis TKJ Kelas 10-12</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body { background: linear-gradient(135deg, #1e3c72, #2a5298); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .container { background: #fff; width: 100%; max-width: 700px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 30px; display: flex; flex-direction: column; min-height: 500px; }
+    header { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+    header h1 { color: #1e3c72; font-size: 22px; margin-bottom: 10px; }
+    .progress-info { display: flex; flex-direction: column; gap: 8px; }
+    #soalCounter { font-size: 14px; color: #666; font-weight: 600; }
+    .progress-bar { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
+    #progressFill { height: 100%; background: linear-gradient(90deg, #1e3c72, #2a5298); width: 2%; transition: width 0.3s ease; }
+    main { flex: 1; }
+    .soal-box { background: #f7f9fc; border-left: 4px solid #2a5298; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    #soalText { font-size: 16px; line-height: 1.6; color: #333; }
+    .opsi-container { display: flex; flex-direction: column; gap: 12px; }
+    .opsi-item { display: flex; align-items: center; padding: 14px 18px; background: #f7f9fc; border: 2px solid #e0e6ed; border-radius: 10px; cursor: pointer; transition: all 0.2s; font-size: 15px; }
+    .opsi-item:hover { background: #e8f0fe; border-color: #2a5298; }
+    .opsi-item.selected { background: #2a5298; color: #fff; border-color: #1e3c72; }
+    .opsi-item input { margin-right: 12px; transform: scale(1.2); }
+
+    /* ===== FOOTER + CREDIT ===== */
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 2px solid #eee;
+    }
+    .btn { flex: 1; min-width: 120px; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-prev { background: #e0e6ed; color: #333; }
+    .btn-prev:hover { background: #c9d3dd; }
+    .btn-next { background: linear-gradient(135deg, #1e3c72, #2a5298); color: #fff; }
+    .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(30,60,114,0.4); }
+    .btn-finish { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Tulisan credit "by: PakTiko" */
+    .footer-credit {
+      width: 100%;
+      text-align: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #d0d7de;
+      font-size: 13px;
+      color: #8895a7;
+      font-style: italic;
+      letter-spacing: 0.5px;
+    }
+    .footer-credit strong { color: #1e3c72; font-style: normal; }
+
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 999; }
+    .modal-content { background: #fff; padding: 40px; border-radius: 16px; text-align: center; max-width: 400px; }
+    .modal-content h2 { color: #1e3c72; margin-bottom: 20px; }
+    #scoreText { font-size: 42px; font-weight: bold; color: #38ef7d; margin: 15px 0; }
+    #detailText { color: #666; margin-bottom: 20px; }
+    @media (max-width: 500px) { .container { padding: 20px; } footer { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Kuis TKJ</h1>
+      <div class="progress-info">
+        <span id="soalCounter">Soal 1 dari 50</span>
+        <div class="progress-bar"><div id="progressFill"></div></div>
+      </div>
+    </header>
+    <main id="quizArea">
+      <div class="soal-box"><p id="soalText">Memuat soal...</p></div>
+      <div id="opsiContainer" class="opsi-container"></div>
+    </main>
+    <footer>
+      <button id="btnPrev" class="btn btn-prev">← Sebelumnya</button>
+      <button id="btnNext" class="btn btn-next">Berikutnya →</button>
+      <button id="btnFinish" class="btn btn-finish" style="display:none;">Selesai & Lihat Nilai</button>
+      <div class="footer-credit">by: <strong>PakTiko</strong></div>
+    </footer>
+    <div id="resultModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <h2>Hasil Kuis</h2>
+        <p id="scoreText"></p>
+        <p id="detailText"></p>
+        <button onclick="resetQuiz()" class="btn btn-next">Ulangi Kuis</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== BANK SOAL =====
+    const bankSoal = [
+      { soal: "Kepanjangan dari TKJ adalah...", opsi: ["Teknik Komputer dan Jaringan", "Teknik Kendaraan Jalan", "Teknologi Komunikasi Jaya", "Teknik Kerja Jaringan"], jawaban: 0 },
+      { soal: "Perangkat yang berfungsi menghubungkan dua atau lebih jaringan berbeda adalah...", opsi: ["Switch", "Hub", "Router", "Repeater"], jawaban: 2 },
+      { soal: "IP Address 192.168.1.1 termasuk kelas...", opsi: ["Kelas A", "Kelas B", "Kelas C", "Kelas D"], jawaban: 2 },
+      { soal: "Berapa jumlah host yang tersedia pada subnet mask /24?", opsi: ["256", "254", "128", "255"], jawaban: 1 },
+      { soal: "Kabel yang digunakan untuk jaringan LAN dengan konektor RJ-45 adalah...", opsi: ["UTP", "Coaxial", "Fiber Optic", "STP"], jawaban: 0 },
+      { soal: "Susunan warna kabel straight-through pada ujung pertama adalah...", opsi: ["Putih-Orange, Orange, Putih-Hijau, Biru, Putih-Biru, Hijau, Putih-Coklat, Coklat", "Putih-Hijau, Hijau, Putih-Orange, Biru, Putih-Biru, Orange, Putih-Coklat, Coklat", "Putih-Coklat, Coklat, Putih-Biru, Biru, Putih-Hijau, Hijau, Putih-Orange, Orange", "Orange, Putih-Orange, Hijau, Putih-Hijau, Biru, Putih-Biru, Coklat, Putih-Coklat"], jawaban: 0 },
+      { soal: "Alat untuk mengukur kekuatan sinyal jaringan adalah...", opsi: ["Multimeter", "OTDR", "LAN Tester", "Tang Crimping"], jawaban: 1 },
+      { soal: "Topologi jaringan yang menghubungkan semua komputer ke satu titik pusat disebut...", opsi: ["Bus", "Ring", "Star", "Mesh"], jawaban: 2 },
+      { soal: "Kepanjangan OSI Layer adalah...", opsi: ["Open System Interconnection", "Open Source Internet", "Operating System Interface", "Online System Integration"], jawaban: 0 },
+      { soal: "Layer ke-3 pada model OSI adalah...", opsi: ["Physical", "Data Link", "Network", "Transport"], jawaban: 2 },
+      { soal: "Perangkat yang bekerja pada Layer 2 OSI adalah...", opsi: ["Router", "Switch", "Hub", "Repeater"], jawaban: 1 },
+      { soal: "Protokol yang digunakan untuk mengirim email adalah...", opsi: ["FTP", "SMTP", "HTTP", "SNMP"], jawaban: 1 },
+      { soal: "Port default HTTP adalah...", opsi: ["21", "25", "80", "443"], jawaban: 2 },
+      { soal: "Kepanjangan DHCP adalah...", opsi: ["Dynamic Host Configuration Protocol", "Digital Host Control Protocol", "Dynamic Hyper Configuration Port", "Data Host Communication Protocol"], jawaban: 0 },
+      { soal: "Berapa bit panjang IPv4?", opsi: ["16 bit", "32 bit", "64 bit", "128 bit"], jawaban: 1 },
+      { soal: "Berapa bit panjang IPv6?", opsi: ["32 bit", "64 bit", "128 bit", "256 bit"], jawaban: 2 },
+      { soal: "Subnet mask default kelas B adalah...", opsi: ["255.0.0.0", "255.255.0.0", "255.255.255.0", "255.255.255.255"], jawaban: 1 },
+      { soal: "Perintah untuk mengecek koneksi jaringan di Windows adalah...", opsi: ["ping", "ipconfig", "tracert", "netstat"], jawaban: 0 },
+      { soal: "Perintah untuk melihat konfigurasi IP di Windows adalah...", opsi: ["ping", "ipconfig", "ifconfig", "netstat"], jawaban: 1 },
+      { soal: "Kabel fiber optic yang hanya bisa mengirim satu arah cahaya disebut...", opsi: ["Single mode", "Multi mode", "Dual mode", "Hybrid mode"], jawaban: 0 },
+      { soal: "VLAN singkatan dari...", opsi: ["Virtual Local Area Network", "Virtual Long Area Network", "Variable Local Area Network", "Virtual Link Area Network"], jawaban: 0 },
+      { soal: "Protokol routing yang menggunakan algoritma distance vector adalah...", opsi: ["OSPF", "RIP", "BGP", "EIGRP"], jawaban: 1 },
+      { soal: "Maksimal hop count pada RIP adalah...", opsi: ["10", "15", "20", "255"], jawaban: 1 },
+      { soal: "Protokol routing yang menggunakan algoritma link state adalah...", opsi: ["RIP", "OSPF", "BGP", "IGRP"], jawaban: 1 },
+      { soal: "Perangkat yang menerjemahkan IP privat ke IP publik adalah...", opsi: ["NAT", "DHCP", "DNS", "FTP"], jawaban: 0 },
+      { soal: "Kepanjangan DNS adalah...", opsi: ["Domain Name System", "Digital Network System", "Data Name Server", "Dynamic Name System"], jawaban: 0 },
+      { soal: "Port default HTTPS adalah...", opsi: ["80", "443", "8080", "21"], jawaban: 1 },
+      { soal: "Firewall berfungsi untuk...", opsi: ["Mempercepat internet", "Menyaring lalu lintas jaringan", "Menyimpan data", "Menggandakan IP"], jawaban: 1 },
+      { soal: "Perintah untuk melihat tabel routing di Linux adalah...", opsi: ["ip route", "route print", "netstat -r", "show ip route"], jawaban: 0 },
+      { soal: "Konfigurasi trunk pada switch Cisco menggunakan protokol...", opsi: ["802.1Q", "802.11", "802.3", "802.1X"], jawaban: 0 },
+      { soal: "Kepanjangan dari ACL pada router Cisco adalah...", opsi: ["Access Control List", "Advanced Control List", "Access Config List", "Active Control Layer"], jawaban: 0 },
+      { soal: "IP Address 10.0.0.1 termasuk kelas...", opsi: ["A", "B", "C", "D"], jawaban: 0 },
+      { soal: "Berapa jumlah subnet yang dihasilkan dari /26?", opsi: ["2", "4", "8", "16"], jawaban: 1 },
+      { soal: "Wireless dengan standar 802.11n beroperasi pada frekuensi...", opsi: ["2.4 GHz saja", "5 GHz saja", "2.4 GHz dan 5 GHz", "900 MHz"], jawaban: 2 },
+      { soal: "Keamanan wireless yang paling aman saat ini adalah...", opsi: ["WEP", "WPA", "WPA2", "WPA3"], jawaban: 3 },
+      { soal: "Perangkat yang menggabungkan fungsi router dan switch adalah...", opsi: ["Modem", "Access Point", "Layer 3 Switch", "Hub"], jawaban: 2 },
+      { soal: "Kepanjangan dari VPN adalah...", opsi: ["Virtual Private Network", "Virtual Public Network", "Variable Private Network", "Virtual Protected Network"], jawaban: 0 },
+      { soal: "Protokol VPN yang dikembangkan Cisco adalah...", opsi: ["OpenVPN", "IPSec", "PPTP", "L2TP"], jawaban: 1 },
+      { soal: "Layanan server yang berfungsi menyimpan file adalah...", opsi: ["Web Server", "File Server", "Mail Server", "DNS Server"], jawaban: 1 },
+      { soal: "Software web server yang paling populer di Linux adalah...", opsi: ["IIS", "Apache", "Nginx", "Tomcat"], jawaban: 1 },
+      { soal: "Port default SSH adalah...", opsi: ["21", "22", "23", "25"], jawaban: 1 },
+      { soal: "Kepanjangan dari SSH adalah...", opsi: ["Secure Shell", "Secure Socket Host", "System Shell", "Server Side Host"], jawaban: 0 },
+      { soal: "Distro Linux yang paling banyak digunakan untuk server adalah...", opsi: ["Ubuntu", "Debian", "CentOS", "Semua benar"], jawaban: 3 },
+      { soal: "Perintah untuk mengubah permission file di Linux adalah...", opsi: ["chmod", "chown", "chgrp", "chroot"], jawaban: 0 },
+      { soal: "Permission 755 pada file berarti...", opsi: ["rwxr-xr-x", "rw-r--r--", "rwxrwxrwx", "rw-rw-rw-"], jawaban: 0 },
+      { soal: "Layanan yang berfungsi menerjemahkan nama domain ke IP adalah...", opsi: ["DHCP", "DNS", "FTP", "SMTP"], jawaban: 1 },
+      { soal: "Software DNS server yang populer di Linux adalah...", opsi: ["Bind9", "Apache", "Nginx", "Postfix"], jawaban: 0 },
+      { soal: "Kepanjangan dari RAID adalah...", opsi: ["Redundant Array of Independent Disks", "Random Access of Independent Disks", "Redundant Access of Internal Disks", "Rapid Array of Integrated Disks"], jawaban: 0 },
+      { soal: "RAID 1 menggunakan teknik...", opsi: ["Striping", "Mirroring", "Parity", "Concatenation"], jawaban: 1 },
+      { soal: "Ancaman keamanan yang menyamar sebagai orang lain disebut...", opsi: ["Spoofing", "Phishing", "Sniffing", "DDoS"], jawaban: 0 },
+      { soal: "Serangan yang membanjiri server dengan trafik berlebihan disebut...", opsi: ["Phishing", "DDoS", "Spoofing", "Malware"], jawaban: 1 },
+      { soal: "Teknik pengamanan jaringan dengan menyembunyikan IP asli adalah...", opsi: ["VPN", "Proxy", "Firewall", "Antivirus"], jawaban: 1 },
+      { soal: "Kepanjangan dari IDS adalah...", opsi: ["Intrusion Detection System", "Internet Detection System", "Internal Data System", "Intrusion Data Server"], jawaban: 0 }
+    ];
+
+    const STORAGE_KEY = 'kuisTKJ_jawaban';
+    const INDEX_KEY = 'kuisTKJ_index';
+    let currentIndex = 0;
+    let jawabanUser = {};
+
+    function loadFromStorage() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) jawabanUser = JSON.parse(saved);
+        const savedIndex = localStorage.getItem(INDEX_KEY);
+        if (savedIndex !== null) {
+          const idx = parseInt(savedIndex);
+          if (idx >= 0 && idx < bankSoal.length) currentIndex = idx;
+        }
+      } catch (e) { console.warn('Gagal load localStorage:', e); }
+    }
+
+    function saveJawaban() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(jawabanUser));
+        localStorage.setItem(INDEX_KEY, currentIndex);
+      } catch (e) { console.warn('Gagal simpan localStorage:', e); }
+    }
+
+    function renderSoal() {
+      const data = bankSoal[currentIndex];
+      if (!data) return;
+      document.getElementById('soalText').textContent = (currentIndex + 1) + '. ' + data.soal;
+      document.getElementById('soalCounter').textContent = 'Soal ' + (currentIndex + 1) + ' dari ' + bankSoal.length;
+      document.getElementById('progressFill').style.width = ((currentIndex + 1) / bankSoal.length * 100) + '%';
+
+      const opsiContainer = document.getElementById('opsiContainer');
+      opsiContainer.innerHTML = '';
+      const labels = ['A','B','C','D'];
+      data.opsi.forEach(function(opsi, i) {
+        const div = document.createElement('div');
+        div.className = 'opsi-item';
+        if (jawabanUser[currentIndex] === i) div.classList.add('selected');
+        div.innerHTML = '<input type="radio" name="opsi" ' + (jawabanUser[currentIndex] === i ? 'checked' : '') + '><span><strong>' + labels[i] + '.</strong> ' + opsi + '</span>';
+        div.addEventListener('click', function() { pilihJawaban(i); });
+        opsiContainer.appendChild(div);
+      });
+
+      document.getElementById('btnPrev').disabled = (currentIndex === 0);
+      const btnNext = document.getElementById('btnNext');
+      const btnFinish = document.getElementById('btnFinish');
+      if (currentIndex === bankSoal.length - 1) {
+        btnNext.style.display = 'none';
+        btnFinish.style.display = 'block';
+      } else {
+        btnNext.style.display = 'block';
+        btnFinish.style.display = 'none';
+      }
+    }
+
+    function pilihJawaban(indexOpsi) {
+      jawabanUser[currentIndex] = indexOpsi;
+      saveJawaban();
+      renderSoal();
+    }
+
+    document.getElementById('btnNext').addEventListener('click', function() {
+      if (jawabanUser[currentIndex] === undefined) {
+        if (!confirm('Anda belum memilih jawaban. Lanjutkan?')) return;
+      }
+      saveJawaban();
+      if (currentIndex < bankSoal.length - 1) {
+        currentIndex++;
+        saveJawaban();
+        renderSoal();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+
+    document.getElementById('btnPrev').addEventListener('click', function() {
+      saveJawaban();
+      if (currentIndex > 0) {
+        currentIndex--;
+        saveJawaban();
+        renderSoal();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+
+    document.getElementById('btnFinish').addEventListener('click', function() {
+      saveJawaban();
+      let benar = 0, kosong = 0;
+      bankSoal.forEach(function(soal, i) {
+        if (jawabanUser[i] === undefined) kosong++;
+        else if (jawabanUser[i] === soal.jawaban) benar++;
+      });
+      const nilai = Math.round(benar / bankSoal.length * 100);
+      document.getElementById('scoreText').textContent = nilai;
+      document.getElementById('detailText').innerHTML = 'Benar: <b>' + benar + '</b> | Salah: <b>' + (bankSoal.length - benar - kosong) + '</b> | Kosong: <b>' + kosong + '</b>';
+      document.getElementById('resultModal').style.display = 'flex';
+    });
+
+    function resetQuiz() {
+      if (!confirm('Yakin ingin mengulang kuis?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(INDEX_KEY);
+      jawabanUser = {};
+      currentIndex = 0;
+      document.getElementById('resultModal').style.display = 'none';
+      renderSoal();
+    }
+
+    // ===== INIT =====
+    loadFromStorage();
+    renderSoal();
+  </script>
+</body>
+</html>
